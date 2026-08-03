@@ -224,8 +224,7 @@ function HomeView({ companies, counts, onAdd }) {
         <div className="tiny muted">
           مشاريع مستقلة لا تتبع أي شركة — أنشئ مشروعاً، ثم أقساماً بأسماء تختارها، وارفع فيها ملفاتك.
         </div>
-        <div className="row">
-          <span className="tag">بدون النقاط التسع</span>
+        <div className="row" style={{ justifyContent: 'flex-end' }}>
           <span className="tiny muted">فتح ←</span>
         </div>
       </div>
