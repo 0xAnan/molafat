@@ -58,7 +58,7 @@
 
 **Authentication ← Users ← Add user ← Create new user**:
 
-- Email: `tarek@molafat.local` (استخدم أي اسم مستخدم + `@molafat.local`)
+- Email: `tarek@work.com` (استخدم أي اسم مستخدم + `@work.com`)
 - Password: كلمة مرور قوية
 - فعّل **Auto Confirm User**
 
@@ -78,7 +78,7 @@
 window.__APP_CONFIG__ = {
   SUPABASE_URL: 'https://xxxxxxxx.supabase.co',
   SUPABASE_ANON_KEY: 'eyJhbGciOi...',
-  LOGIN_DOMAIN: 'molafat.local',
+  LOGIN_DOMAIN: 'work.com',
 }
 ```
 

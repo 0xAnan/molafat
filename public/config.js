@@ -7,6 +7,6 @@ window.__APP_CONFIG__ = {
   SUPABASE_URL: 'https://cyazncquqjpcmsavpbrp.supabase.co',
   SUPABASE_ANON_KEY: 'sb_publishable_vC__ym-yS_MdvlJxDHPC2g_ckMIELrg',
   // النطاق المستخدم لتحويل اسم المستخدم إلى بريد إلكتروني عند تسجيل الدخول.
-  // مثال: يكتب المستخدم "tarek" فيتم تسجيل الدخول بـ tarek@molafat.local
-  LOGIN_DOMAIN: 'molafat.local',
+  // مثال: يكتب المستخدم "admin" فيتم تسجيل الدخول بـ admin@work.com
+  LOGIN_DOMAIN: 'work.com',
 }
