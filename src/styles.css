@@ -252,6 +252,20 @@ textarea.input { resize: vertical; min-height: 78px; }
   border-bottom: 1px solid rgba(216, 189, 133, 0.16);
   display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
 }
+.brand-home {
+  background: transparent;
+  border: none;
+  padding: 4px 6px;
+  margin: -4px -6px;
+  border-radius: var(--radius);
+  text-align: start;
+  color: inherit;
+  display: block;
+  transition: background 0.15s ease;
+}
+.brand-home:hover { background: rgba(216, 189, 133, 0.1); }
+.brand-home:active { background: rgba(216, 189, 133, 0.18); }
+
 .sidebar .brand h1 {
   font-family: var(--serif);
   font-size: 27px; margin: 0;
@@ -661,7 +675,12 @@ textarea.input { resize: vertical; min-height: 78px; }
     background: var(--ink);
     border-bottom: 1px solid rgba(216, 189, 133, 0.2);
   }
-  .topbar-title { font-family: var(--serif); font-size: 21px; color: #f4efe3; }
+  .topbar-title {
+    font-family: var(--serif); font-size: 21px; color: #f4efe3;
+    background: transparent; border: none;
+    padding: 6px 14px; border-radius: var(--radius);
+  }
+  .topbar-title:active { background: rgba(216, 189, 133, 0.16); }
 
   .sidebar {
     position: fixed; inset-block: 0; inset-inline-start: 0;

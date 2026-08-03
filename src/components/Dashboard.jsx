@@ -72,7 +72,7 @@ export default function Dashboard({ session }) {
     <div className={`shell ${menuOpen ? 'menu-open' : ''}`}>
       <div className="topbar">
         <button className="menu-btn" onClick={() => setMenuOpen(true)} aria-label="فتح القائمة">☰</button>
-        <span className="topbar-title">ملفات</span>
+        <button className="topbar-title" onClick={() => navigate('/')}>ملفات</button>
         <button className="menu-btn" onClick={() => navigate('/')} aria-label="الرئيسية">⌂</button>
       </div>
 
@@ -80,10 +80,10 @@ export default function Dashboard({ session }) {
 
       <aside className="sidebar">
         <div className="brand">
-          <div>
+          <button className="brand-home" onClick={() => navigate('/')} title="الرئيسية">
             <h1>ملفات</h1>
             <span>إدارة أعمال الجهات</span>
-          </div>
+          </button>
           <button className="close-menu" onClick={() => setMenuOpen(false)} aria-label="إغلاق القائمة">✕</button>
         </div>
 
