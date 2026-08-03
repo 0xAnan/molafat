@@ -1,4 +1,4 @@
-// النقاط التسع الثابتة داخل كل مرحلة.
+// النقاط الثابتة داخل كل مرحلة.
 // kind: 'doc'   → نقطة مستندات (رفع ملفات)
 //       'money' → نقطة مالية (مبلغ + ملفات اختيارية)
 export const POINTS = [
@@ -7,10 +7,11 @@ export const POINTS = [
   { key: 'ministerial_decree', order: 3, label: 'قرار وزاري', kind: 'doc' },
   { key: 'consultant_report', order: 4, label: 'تقرير الاستشاري', kind: 'doc' },
   { key: 'estimate', order: 5, label: 'المقايسة', kind: 'doc' },
-  { key: 'approved_report', order: 6, label: 'التقرير المعتمد', kind: 'doc' },
-  { key: 'works_value', order: 7, label: 'قيمة الأعمال', kind: 'money' },
-  { key: 'incidentals', order: 8, label: 'النثريات', kind: 'money' },
-  { key: 'net', order: 9, label: 'الصافي', kind: 'money', computed: true },
+  { key: 'claim', order: 6, label: 'المطالبة', kind: 'doc' },
+  { key: 'approved_report', order: 7, label: 'التقرير المعتمد', kind: 'doc' },
+  { key: 'works_value', order: 8, label: 'قيمة الأعمال', kind: 'money' },
+  { key: 'incidentals', order: 9, label: 'النثريات', kind: 'money' },
+  { key: 'net', order: 10, label: 'الصافي', kind: 'money', computed: true },
 ]
 
 export const POINT_BY_KEY = Object.fromEntries(POINTS.map((p) => [p.key, p]))

@@ -95,7 +95,7 @@ export default function PhasesView({ projectId }) {
       {phases.length === 0 ? (
         <div className="empty">
           <h3>لا توجد مراحل بعد</h3>
-          <p>كل مرحلة تحتوي على النقاط التسع (خطاب الجهة، الرخص، القرار الوزاري، … الصافي).</p>
+          <p>كل مرحلة تحتوي على النقاط العشر (خطاب الجهة، الرخص، القرار الوزاري، … الصافي).</p>
           <button className="btn brass" onClick={() => setNewPhase(true)}>إضافة أول مرحلة</button>
         </div>
       ) : (
