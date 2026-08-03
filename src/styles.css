@@ -372,6 +372,37 @@ textarea.input { resize: vertical; min-height: 78px; }
 .project-card h3 { font-family: var(--serif); font-size: 22px; margin: 0; }
 .project-card .row { display: flex; align-items: center; gap: 10px; justify-content: space-between; }
 
+/* عنوان قسم داخل الصفحة الرئيسية */
+.section-label {
+  font-family: var(--serif);
+  font-size: 19px;
+  color: var(--ink-soft);
+  margin: 26px 0 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; gap: 10px;
+}
+.section-label::after {
+  content: '';
+  flex: 1; height: 1px;
+  background: repeating-linear-gradient(90deg, var(--line) 0 5px, transparent 5px 10px);
+}
+
+/* بطاقة «ملفات أخرى» في الرئيسية */
+.misc-card { max-width: 460px; }
+.misc-card::before { background: var(--ink); opacity: 0.6; }
+
+/* مدخل «ملفات أخرى» في القائمة الجانبية */
+.company-item.other-files {
+  margin: 0 10px 10px;
+  width: auto;
+  border-top: 1px solid rgba(216, 189, 133, 0.16);
+  border-radius: var(--radius);
+  padding-top: 12px;
+  margin-top: 4px;
+}
+.company-item.other-files .dot { background: #f0e6cf; }
+
 .stat {
   padding: 15px 17px;
   background: var(--card);
@@ -472,6 +503,9 @@ textarea.input { resize: vertical; min-height: 78px; }
   color: var(--ink);
 }
 .net-note { font-size: 12px; color: var(--ink-faint); }
+
+.file-area { display: flex; flex-direction: column; gap: 10px; }
+.file-area.dragging .drop { border-color: var(--brass); background: rgba(169,124,32,0.1); color: var(--ink); }
 
 .file-list { display: flex; flex-direction: column; gap: 8px; }
 .file-row {

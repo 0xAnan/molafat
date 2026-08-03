@@ -73,6 +73,76 @@ export const saveEntry = (phaseId, pointKey, patch) =>
     .single()
     .then(unwrap)
 
+/* ------------------------ ملفات أخرى: مشاريع مستقلة ----------------------- */
+export const listFolders = () =>
+  supabase.from('folders').select('*').order('created_at', { ascending: true }).then(unwrap)
+
+export const getFolder = (id) => supabase.from('folders').select('*').eq('id', id).single().then(unwrap)
+
+export const createFolder = (name, notes = null) =>
+  supabase.from('folders').insert({ name, notes }).select().single().then(unwrap)
+
+export const updateFolder = (id, patch) =>
+  supabase.from('folders').update(patch).eq('id', id).select().single().then(unwrap)
+
+export const deleteFolder = (id) => supabase.from('folders').delete().eq('id', id).then(unwrap)
+
+export const listSections = (folderId) =>
+  supabase
+    .from('folder_sections')
+    .select('*')
+    .eq('folder_id', folderId)
+    .order('position', { ascending: true })
+    .order('created_at', { ascending: true })
+    .then(unwrap)
+
+export const createSection = (folderId, name, position) =>
+  supabase.from('folder_sections').insert({ folder_id: folderId, name, position }).select().single().then(unwrap)
+
+export const updateSection = (id, patch) =>
+  supabase.from('folder_sections').update(patch).eq('id', id).select().single().then(unwrap)
+
+export const deleteSection = (id) => supabase.from('folder_sections').delete().eq('id', id).then(unwrap)
+
+export const listFolderAttachments = (sectionIds) =>
+  sectionIds.length
+    ? supabase
+        .from('attachments')
+        .select('*')
+        .in('section_id', sectionIds)
+        .order('created_at', { ascending: true })
+        .then(unwrap)
+    : Promise.resolve([])
+
+export async function uploadSectionAttachment({ folderId, sectionId, file, userId }) {
+  const path = safePath(`misc/${folderId}`, sectionId, 'files', file.name)
+  const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, file, {
+    cacheControl: '3600',
+    upsert: false,
+    contentType: file.type || 'application/octet-stream',
+  })
+  if (upErr) throw upErr
+
+  try {
+    return await supabase
+      .from('attachments')
+      .insert({
+        section_id: sectionId,
+        file_name: file.name,
+        storage_path: path,
+        mime_type: file.type || null,
+        size_bytes: file.size,
+        uploaded_by: userId || null,
+      })
+      .select()
+      .single()
+      .then(unwrap)
+  } catch (err) {
+    await supabase.storage.from(BUCKET).remove([path])
+    throw err
+  }
+}
+
 /* --------------------------------- مرفقات --------------------------------- */
 export const listAttachments = (phaseId) =>
   supabase

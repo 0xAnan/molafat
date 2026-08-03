@@ -5,6 +5,8 @@ import { Modal, ConfirmDialog, Loading, useToast, errText } from './ui'
 import ProjectsView from './ProjectsView'
 import PhasesView from './PhasesView'
 import PhaseDetail from './PhaseDetail'
+import FoldersView from './FoldersView'
+import FolderDetail from './FolderDetail'
 
 /* --------------------------- توجيه بسيط عبر الهاش -------------------------- */
 function parseHash() {
@@ -13,6 +15,8 @@ function parseHash() {
   if (kind === 'c' && id) return { view: 'company', id }
   if (kind === 'p' && id) return { view: 'project', id }
   if (kind === 'ph' && id) return { view: 'phase', id }
+  if (kind === 'f' && id) return { view: 'folder', id }
+  if (kind === 'f') return { view: 'folders' }
   return { view: 'home' }
 }
 
@@ -108,6 +112,14 @@ export default function Dashboard({ session }) {
           ))}
         </nav>
 
+        <button
+          className={`company-item other-files ${route.view === 'folders' || route.view === 'folder' ? 'active' : ''}`}
+          onClick={() => navigate('/f')}
+        >
+          <span className="dot" />
+          <span className="name">ملفات أخرى</span>
+        </button>
+
         <div className="user-box">
           <div className="avatar">{userName.slice(0, 1).toUpperCase()}</div>
           <div className="who">
@@ -141,6 +153,10 @@ export default function Dashboard({ session }) {
         {route.view === 'phase' && (
           <PhaseDetail key={route.id} phaseId={route.id} userId={session.user.id} />
         )}
+        {route.view === 'folders' && <FoldersView />}
+        {route.view === 'folder' && (
+          <FolderDetail key={route.id} folderId={route.id} userId={session.user.id} />
+        )}
       </main>
 
       {showNewCompany && (
@@ -171,6 +187,8 @@ function HomeView({ companies, counts, onAdd }) {
         </div>
       </div>
 
+      <div className="section-label">الشركات</div>
+
       {companies.length === 0 ? (
         <div className="empty">
           <h3>لا توجد شركات بعد</h3>
@@ -196,6 +214,21 @@ function HomeView({ companies, counts, onAdd }) {
           ))}
         </div>
       )}
+
+      <div className="section-label">ملفات أخرى</div>
+      <div
+        className="card project-card misc-card"
+        onClick={() => navigate('/f')}
+      >
+        <h3>ملفات أخرى</h3>
+        <div className="tiny muted">
+          مشاريع مستقلة لا تتبع أي شركة — أنشئ مشروعاً، ثم أقساماً بأسماء تختارها، وارفع فيها ملفاتك.
+        </div>
+        <div className="row">
+          <span className="tag">بدون النقاط التسع</span>
+          <span className="tiny muted">فتح ←</span>
+        </div>
+      </div>
     </>
   )
 }

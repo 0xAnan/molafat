@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import * as api from '../lib/api'
 import { ConfirmDialog, Loading, useToast, errText } from './ui'
 import { navigate } from './Dashboard'
-import { POINTS, formatMoney, formatSize, formatDate, fileKind } from '../lib/points'
+import { POINTS, formatMoney, formatDate } from '../lib/points'
+import FileArea from './FileArea'
 
 export default function PhaseDetail({ phaseId, userId }) {
   const toast = useToast()
@@ -129,10 +130,6 @@ function PointCard({
   index, point, entry, attachments, computedNet,
   phaseId, projectId, userId, onPatch, onFilesChanged, onAskDelete,
 }) {
-  const toast = useToast()
-  const inputRef = useRef(null)
-  const [dragging, setDragging] = useState(false)
-  const [uploading, setUploading] = useState(0)
   const [amount, setAmount] = useState(entry?.amount ?? '')
   const [notes, setNotes] = useState(entry?.notes ?? '')
   const [notesOpen, setNotesOpen] = useState(false)
@@ -143,47 +140,12 @@ function PointCard({
   // الملاحظة تظهر دائماً إذا كانت محفوظة، أو عند فتحها يدوياً
   const showNotes = notesOpen || !!entry?.notes
 
-  async function handleFiles(list) {
-    const arr = Array.from(list || [])
-    if (!arr.length) return
-    const MAX = 50 * 1024 * 1024 // حد Supabase الافتراضي لكل ملف
-    const tooBig = arr.filter((f) => f.size > MAX)
-    for (const f of tooBig) toast(`«${f.name}» أكبر من 50 ميجابايت — قسّمه أو اضغطه أولاً`, 'error')
-    const queue = arr.filter((f) => f.size <= MAX)
-    if (!queue.length) return
-    setUploading(queue.length)
-    let ok = 0
-    for (const file of queue) {
-      try {
-        await api.uploadAttachment({ projectId, phaseId, pointKey: point.key, file, userId })
-        ok++
-      } catch (err) {
-        toast(`تعذّر رفع «${file.name}»: ${errText(err)}`, 'error')
-      }
-    }
-    setUploading(0)
-    if (ok) toast(ok === 1 ? 'تم رفع الملف' : `تم رفع ${ok} ملفات`)
-    await onFilesChanged()
-  }
-
-  async function open(att, download) {
-    try {
-      const url = await api.signedUrl(att.storage_path, { download: download ? att.file_name : false })
-      window.open(url, '_blank', 'noopener')
-    } catch (err) {
-      toast(errText(err), 'error')
-    }
-  }
-
   const isNet = point.key === 'net'
 
   return (
     <section
-      className={`point ${point.kind === 'money' ? 'money' : ''} ${isNet ? 'net' : ''} ${dragging ? 'dragging' : ''}`}
+      className={`point ${point.kind === 'money' ? 'money' : ''} ${isNet ? 'net' : ''}`}
       style={{ animationDelay: `${index * 35}ms` }}
-      onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
-      onDragLeave={() => setDragging(false)}
-      onDrop={(e) => { e.preventDefault(); setDragging(false); handleFiles(e.dataTransfer.files) }}
     >
       <div className="head">
         <span className="idx">{point.order}</span>
@@ -220,66 +182,11 @@ function PointCard({
           </div>
         )}
 
-        {attachments.length > 0 && (
-          <div className="file-list">
-            {attachments.map((att) => {
-              const k = fileKind(att.file_name, att.mime_type || '')
-              return (
-                <div key={att.id} className="file-row">
-                  <div className="file-main">
-                    <span className={`ext ${k.cls}`}>{k.tag}</span>
-                    <span className="fname" title={att.file_name}>{att.file_name}</span>
-                    <span className="fsize">{formatSize(att.size_bytes)}</span>
-                  </div>
-                  <div className="file-actions">
-                    <button className="fa" onClick={() => open(att, false)}>
-                      <span aria-hidden="true">⤢</span> فتح
-                    </button>
-                    <button className="fa" onClick={() => open(att, true)}>
-                      <span aria-hidden="true">⇩</span> تنزيل
-                    </button>
-                    <button
-                      className="fa del"
-                      onClick={() =>
-                        onAskDelete({
-                          title: 'حذف الملف',
-                          message: `سيُحذف «${att.file_name}» نهائياً.`,
-                          run: async () => {
-                            await api.deleteAttachment(att)
-                            toast('تم حذف الملف')
-                            await onFilesChanged()
-                          },
-                        })
-                      }
-                    >
-                      <span aria-hidden="true">✕</span> حذف
-                    </button>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
-
-        {uploading > 0 && (
-          <div className="upload-progress" aria-label="جارٍ الرفع"><i /></div>
-        )}
-
-        <div
-          className="drop"
-          role="button"
-          tabIndex={0}
-          onClick={() => inputRef.current?.click()}
-          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && inputRef.current?.click()}
-        >
-          <b>اسحب الملفات هنا</b> أو اضغط للاختيار — Word، PDF، صور… (عدة ملفات معاً)
-        </div>
-        <input
-          ref={inputRef}
-          type="file"
-          multiple
-          hidden
-          onChange={(e) => { handleFiles(e.target.files); e.target.value = '' }}
+        <FileArea
+          attachments={attachments}
+          upload={(file) => api.uploadAttachment({ projectId, phaseId, pointKey: point.key, file, userId })}
+          onChanged={onFilesChanged}
+          onAskDelete={onAskDelete}
         />
 
         {showNotes ? (

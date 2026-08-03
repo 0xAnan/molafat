@@ -66,11 +66,30 @@ create table if not exists public.point_entries (
   unique (phase_id, point_key)
 );
 
+-- ملفات أخرى: مشاريع مستقلة غير مرتبطة بأي شركة
+create table if not exists public.folders (
+  id          uuid primary key default gen_random_uuid(),
+  name        text not null,
+  notes       text,
+  created_by  uuid references auth.users (id) on delete set null,
+  created_at  timestamptz not null default now()
+);
+
+-- أقسام داخل المشروع المستقل (أسماء حرة يحددها المستخدم)
+create table if not exists public.folder_sections (
+  id          uuid primary key default gen_random_uuid(),
+  folder_id   uuid not null references public.folders (id) on delete cascade,
+  name        text not null,
+  position    integer not null default 0,
+  created_by  uuid references auth.users (id) on delete set null,
+  created_at  timestamptz not null default now()
+);
+
 -- المرفقات: عدة ملفات لكل نقطة (word + pdf + صورة ...)
 create table if not exists public.attachments (
   id            uuid primary key default gen_random_uuid(),
-  phase_id      uuid not null references public.phases (id) on delete cascade,
-  point_key     text not null,
+  phase_id      uuid references public.phases (id) on delete cascade,
+  point_key     text,
   file_name     text not null,
   storage_path  text not null unique,
   mime_type     text,
@@ -79,7 +98,19 @@ create table if not exists public.attachments (
   created_at    timestamptz not null default now()
 );
 
+-- ترقية قاعدة قائمة من قبل: المرفق يتبع إما نقطة مرحلة أو قسم ملفات أخرى
+alter table public.attachments alter column phase_id  drop not null;
+alter table public.attachments alter column point_key drop not null;
+alter table public.attachments
+  add column if not exists section_id uuid references public.folder_sections (id) on delete cascade;
+
+alter table public.attachments drop constraint if exists attachments_target_ck;
+alter table public.attachments add constraint attachments_target_ck
+  check (num_nonnulls(phase_id, section_id) = 1);
+
 create index if not exists projects_company_idx     on public.projects (company_id);
+create index if not exists folder_sections_idx      on public.folder_sections (folder_id);
+create index if not exists attachments_section_idx  on public.attachments (section_id);
 create index if not exists phases_project_idx       on public.phases (project_id);
 create index if not exists point_entries_phase_idx  on public.point_entries (phase_id);
 create index if not exists attachments_phase_idx    on public.attachments (phase_id, point_key);
@@ -139,6 +170,8 @@ alter table public.projects      enable row level security;
 alter table public.phases        enable row level security;
 alter table public.point_entries enable row level security;
 alter table public.attachments   enable row level security;
+alter table public.folders          enable row level security;
+alter table public.folder_sections  enable row level security;
 
 -- profiles: كل مستخدم مسجّل يرى الأسماء، ويعدّل ملفه هو فقط
 drop policy if exists profiles_select on public.profiles;
@@ -153,7 +186,8 @@ create policy profiles_update_self on public.profiles
 do $$
 declare t text;
 begin
-  foreach t in array array['companies', 'projects', 'phases', 'point_entries', 'attachments']
+  foreach t in array array['companies', 'projects', 'phases', 'point_entries', 'attachments',
+                           'folders', 'folder_sections']
   loop
     execute format('drop policy if exists %I on public.%I', t || '_rw', t);
     execute format(
