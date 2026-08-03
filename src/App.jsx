@@ -17,8 +17,23 @@ function NotConfigured() {
   )
 }
 
+function NotApproved({ email }) {
+  return (
+    <div style={{ maxWidth: 560, margin: '80px auto', padding: '0 22px' }}>
+      <h1 className="serif" style={{ fontSize: 40, marginBottom: 6 }}>ملفات</h1>
+      <div className="alert info">
+        <b>الحساب غير معتمد.</b> تم تسجيل الدخول باسم <code dir="ltr">{email}</code>،
+        لكن لم يُمنح هذا الحساب صلاحية الوصول إلى البيانات بعد. تواصل مع مسؤول النظام
+        لاعتماد الحساب.
+      </div>
+      <button className="btn ghost" onClick={() => supabase.auth.signOut()}>تسجيل الخروج</button>
+    </div>
+  )
+}
+
 export default function App() {
   const [session, setSession] = useState(null)
+  const [approved, setApproved] = useState(null)
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
@@ -31,12 +46,28 @@ export default function App() {
     return () => sub.subscription.unsubscribe()
   }, [])
 
+  // التحقق من اعتماد الحساب (الحماية الحقيقية في قاعدة البيانات، وهذه رسالة توضيحية)
+  useEffect(() => {
+    if (!session) { setApproved(null); return }
+    let cancelled = false
+    supabase
+      .from('profiles')
+      .select('approved')
+      .eq('id', session.user.id)
+      .maybeSingle()
+      .then(({ data }) => { if (!cancelled) setApproved(data?.approved === true) })
+    return () => { cancelled = true }
+  }, [session])
+
   if (!configured) return <NotConfigured />
   if (!ready) return <Loading />
+  if (!session) return <ToastProvider><Login /></ToastProvider>
+  if (approved === null) return <Loading />
+  if (!approved) return <NotApproved email={session.user.email} />
 
   return (
     <ToastProvider>
-      {session ? <Dashboard session={session} /> : <Login />}
+      <Dashboard session={session} />
     </ToastProvider>
   )
 }

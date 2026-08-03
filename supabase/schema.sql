@@ -13,8 +13,12 @@ create table if not exists public.profiles (
   username    text,
   full_name   text,
   role        text not null default 'member' check (role in ('member', 'admin')),
+  approved    boolean not null default false,
   created_at  timestamptz not null default now()
 );
+
+-- إن كان الجدول منشأً من قبل بدون عمود approved
+alter table public.profiles add column if not exists approved boolean not null default false;
 
 -- الشركات (إعمار، ...)
 create table if not exists public.companies (
@@ -108,9 +112,27 @@ create trigger on_auth_user_created
 
 -- ----------------------------------------------------------------------------
 -- 3) الحماية: Row Level Security
---    القاعدة: لا شيء متاح للزوار (anon). كل شيء متاح فقط للمستخدمين
---    المسجّلين (authenticated) الذين أنشأت لهم حسابات بنفسك.
+--    القاعدة: لا شيء متاح للزوار (anon)، ولا شيء متاح لأي حساب غير معتمد.
+--    حتى لو تمكّن شخص من إنشاء حساب، لن يرى ولن يكتب أي شيء إلا بعد أن
+--    تعتمده أنت يدوياً:  update public.profiles set approved = true where username = '...';
 -- ----------------------------------------------------------------------------
+
+-- دالة الاعتماد (security definer حتى تعمل دون الاعتماد على سياسات profiles)
+create or replace function public.is_approved()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.profiles
+    where id = auth.uid() and approved = true
+  );
+$$;
+
+revoke all on function public.is_approved() from public, anon;
+grant execute on function public.is_approved() to authenticated;
 alter table public.profiles      enable row level security;
 alter table public.companies     enable row level security;
 alter table public.projects      enable row level security;
@@ -127,7 +149,7 @@ drop policy if exists profiles_update_self on public.profiles;
 create policy profiles_update_self on public.profiles
   for update to authenticated using (id = auth.uid()) with check (id = auth.uid());
 
--- بيانات العمل: قراءة/إضافة/تعديل/حذف لكل مستخدم مسجّل
+-- بيانات العمل: قراءة/إضافة/تعديل/حذف للمستخدمين المعتمدين فقط
 do $$
 declare t text;
 begin
@@ -135,7 +157,7 @@ begin
   loop
     execute format('drop policy if exists %I on public.%I', t || '_rw', t);
     execute format(
-      'create policy %I on public.%I for all to authenticated using (true) with check (true)',
+      'create policy %I on public.%I for all to authenticated using (public.is_approved()) with check (public.is_approved())',
       t || '_rw', t
     );
   end loop;
@@ -155,16 +177,31 @@ drop policy if exists attachments_update on storage.objects;
 drop policy if exists attachments_delete on storage.objects;
 
 create policy attachments_read on storage.objects
-  for select to authenticated using (bucket_id = 'attachments');
+  for select to authenticated using (bucket_id = 'attachments' and public.is_approved());
 
 create policy attachments_write on storage.objects
-  for insert to authenticated with check (bucket_id = 'attachments');
+  for insert to authenticated with check (bucket_id = 'attachments' and public.is_approved());
 
 create policy attachments_update on storage.objects
-  for update to authenticated using (bucket_id = 'attachments');
+  for update to authenticated using (bucket_id = 'attachments' and public.is_approved());
 
 create policy attachments_delete on storage.objects
-  for delete to authenticated using (bucket_id = 'attachments');
+  for delete to authenticated using (bucket_id = 'attachments' and public.is_approved());
+
+-- ----------------------------------------------------------------------------
+-- 4.5) اعتماد المستخدمين
+--   بعد إنشاء أي حساب من Authentication → Users، اعتمده بهذا الأمر:
+--
+--     update public.profiles set approved = true where username = 'tarek';
+--
+--   ولمراجعة الحسابات ومن هو المعتمد:
+--
+--     select username, approved, created_at from public.profiles order by created_at;
+--
+--   لسحب الصلاحية من شخص فوراً:
+--
+--     update public.profiles set approved = false where username = 'someone';
+-- ----------------------------------------------------------------------------
 
 -- ----------------------------------------------------------------------------
 -- 5) لوحة الأرقام: مجموع كل مشروع (قيمة الأعمال / النثريات / الصافي)

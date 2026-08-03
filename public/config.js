@@ -4,8 +4,8 @@
 // المفعّل في ملف supabase/schema.sql — لا يستطيع أي شخص قراءة أو كتابة أي بيانات
 // بدون تسجيل دخول بحساب أنشأته أنت.
 window.__APP_CONFIG__ = {
-  SUPABASE_URL: 'https://YOUR-PROJECT-ref.supabase.co',
-  SUPABASE_ANON_KEY: 'YOUR-ANON-PUBLIC-KEY',
+  SUPABASE_URL: 'https://cyazncquqjpcmsavpbrp.supabase.co',
+  SUPABASE_ANON_KEY: 'sb_publishable_vC__ym-yS_MdvlJxDHPC2g_ckMIELrg',
   // النطاق المستخدم لتحويل اسم المستخدم إلى بريد إلكتروني عند تسجيل الدخول.
   // مثال: يكتب المستخدم "tarek" فيتم تسجيل الدخول بـ tarek@molafat.local
   LOGIN_DOMAIN: 'molafat.local',
