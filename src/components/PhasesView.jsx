@@ -4,14 +4,13 @@ import * as api from '../lib/api'
 import { Modal, ConfirmDialog, Loading, useToast, errText } from './ui'
 import { navigate } from './Dashboard'
 import { ProjectModal } from './ProjectsView'
-import { POINTS, formatMoney } from '../lib/points'
+import { POINTS } from '../lib/points'
 
 export default function PhasesView({ projectId }) {
   const toast = useToast()
   const [project, setProject] = useState(null)
   const [phases, setPhases] = useState(null)
   const [progress, setProgress] = useState({})
-  const [totals, setTotals] = useState({ works: 0, inc: 0, net: 0 })
   const [newPhase, setNewPhase] = useState(false)
   const [editPhase, setEditPhase] = useState(null)
   const [editProject, setEditProject] = useState(false)
@@ -25,12 +24,11 @@ export default function PhasesView({ projectId }) {
 
       if (!rows.length) {
         setProgress({})
-        setTotals({ works: 0, inc: 0, net: 0 })
         return
       }
       const ids = rows.map((r) => r.id)
       const [{ data: entries }, { data: atts }] = await Promise.all([
-        supabase.from('point_entries').select('phase_id, point_key, amount, status').in('phase_id', ids),
+        supabase.from('point_entries').select('phase_id, point_key, amount').in('phase_id', ids),
         supabase.from('attachments').select('phase_id, point_key').in('phase_id', ids),
       ])
 
@@ -40,18 +38,12 @@ export default function PhasesView({ projectId }) {
         filled[phaseId].add(key)
       }
       for (const a of atts || []) add(a.phase_id, a.point_key)
-      let works = 0, inc = 0, net = 0
       for (const e of entries || []) {
-        if (e.status === 'done' || e.amount !== null) add(e.phase_id, e.point_key)
-        const v = Number(e.amount) || 0
-        if (e.point_key === 'works_value') works += v
-        else if (e.point_key === 'incidentals') inc += v
-        else if (e.point_key === 'net') net += v
+        if (e.amount !== null) add(e.phase_id, e.point_key)
       }
       const prog = {}
       for (const id of ids) prog[id] = ((filled[id]?.size || 0) / POINTS.length) * 100
       setProgress(prog)
-      setTotals({ works, inc, net })
     } catch (err) {
       toast(errText(err), 'error')
     }
@@ -100,25 +92,6 @@ export default function PhasesView({ projectId }) {
         </div>
       </div>
 
-      <div className="grid stats">
-        <div className="stat">
-          <div className="k">إجمالي قيمة الأعمال</div>
-          <div className="v">{formatMoney(totals.works)}</div>
-        </div>
-        <div className="stat">
-          <div className="k">إجمالي النثريات</div>
-          <div className="v">{formatMoney(totals.inc)}</div>
-        </div>
-        <div className="stat accent">
-          <div className="k">الصافي</div>
-          <div className="v">{formatMoney(totals.net)}</div>
-        </div>
-        <div className="stat">
-          <div className="k">عدد المراحل</div>
-          <div className="v">{phases.length}</div>
-        </div>
-      </div>
-
       {phases.length === 0 ? (
         <div className="empty">
           <h3>لا توجد مراحل بعد</h3>
@@ -142,7 +115,6 @@ export default function PhasesView({ projectId }) {
                   <div className="sub">{Math.round((pct / 100) * POINTS.length)} من {POINTS.length} نقاط مكتملة</div>
                 </div>
                 <div className="progress-bar" title={`${pct}%`}><i style={{ width: `${pct}%` }} /></div>
-                <span className={`tag ${pct === 100 ? 'done' : pct > 0 ? 'progress' : 'pending'}`}>{pct}%</span>
                 <button
                   className="icon-btn"
                   title="تعديل الاسم"

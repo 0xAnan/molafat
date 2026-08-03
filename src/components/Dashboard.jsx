@@ -26,12 +26,19 @@ export default function Dashboard({ session }) {
   const [companies, setCompanies] = useState(null)
   const [counts, setCounts] = useState({})
   const [showNewCompany, setShowNewCompany] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => {
-    const onHash = () => setRoute(parseHash())
+    const onHash = () => { setRoute(parseHash()); setMenuOpen(false) }
     window.addEventListener('hashchange', onHash)
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
+
+  // منع تمرير الصفحة خلف القائمة الجانبية على الجوال
+  useEffect(() => {
+    document.body.style.overflow = menuOpen ? 'hidden' : ''
+    return () => { document.body.style.overflow = '' }
+  }, [menuOpen])
 
   const loadCompanies = useCallback(async () => {
     try {
@@ -58,11 +65,22 @@ export default function Dashboard({ session }) {
     route.view === 'company' ? route.id : null
 
   return (
-    <div className="shell">
+    <div className={`shell ${menuOpen ? 'menu-open' : ''}`}>
+      <div className="topbar">
+        <button className="menu-btn" onClick={() => setMenuOpen(true)} aria-label="فتح القائمة">☰</button>
+        <span className="topbar-title">ملفات</span>
+        <button className="menu-btn" onClick={() => navigate('/')} aria-label="الرئيسية">⌂</button>
+      </div>
+
+      <div className="scrim" onClick={() => setMenuOpen(false)} />
+
       <aside className="sidebar">
         <div className="brand">
-          <h1>ملفات</h1>
-          <span>إدارة أعمال الجهات</span>
+          <div>
+            <h1>ملفات</h1>
+            <span>إدارة أعمال الجهات</span>
+          </div>
+          <button className="close-menu" onClick={() => setMenuOpen(false)} aria-label="إغلاق القائمة">✕</button>
         </div>
 
         <div className="section-title">

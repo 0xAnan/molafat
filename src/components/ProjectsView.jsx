@@ -5,12 +5,6 @@ import { Modal, ConfirmDialog, Loading, useToast, errText } from './ui'
 import { navigate, CompanyModal } from './Dashboard'
 import { formatDate } from '../lib/points'
 
-const STATUS = {
-  active: { label: 'جارٍ', cls: 'progress' },
-  done: { label: 'منتهٍ', cls: 'done' },
-  onhold: { label: 'متوقف', cls: 'pending' },
-}
-
 export default function ProjectsView({ companyId, onCompanyChanged }) {
   const toast = useToast()
   const [company, setCompany] = useState(null)
@@ -93,19 +87,14 @@ export default function ProjectsView({ companyId, onCompanyChanged }) {
         </div>
       ) : (
         <div className="grid projects">
-          {projects.map((p, i) => {
-            const st = STATUS[p.status] || STATUS.active
-            return (
+          {projects.map((p, i) => (
               <div
                 key={p.id}
                 className="card project-card"
                 style={{ animationDelay: `${i * 45}ms` }}
                 onClick={() => navigate(`/p/${p.id}`)}
               >
-                <div className="row">
-                  <h3>{p.name}</h3>
-                  <span className={`tag ${st.cls}`}>{st.label}</span>
-                </div>
+                <h3>{p.name}</h3>
                 {(p.code || p.location) && (
                   <div className="tiny muted">
                     {[p.code, p.location].filter(Boolean).join(' · ')}
@@ -116,8 +105,7 @@ export default function ProjectsView({ companyId, onCompanyChanged }) {
                   <span className="tiny muted">فتح ←</span>
                 </div>
               </div>
-            )
-          })}
+          ))}
         </div>
       )}
 
@@ -156,7 +144,6 @@ export function ProjectModal({ companyId, project, onClose, onSaved }) {
     name: project?.name || '',
     code: project?.code || '',
     location: project?.location || '',
-    status: project?.status || 'active',
     notes: project?.notes || '',
   })
   const [busy, setBusy] = useState(false)
@@ -170,7 +157,6 @@ export function ProjectModal({ companyId, project, onClose, onSaved }) {
         name: form.name,
         code: form.code || null,
         location: form.location || null,
-        status: form.status,
         notes: form.notes || null,
       }
       if (project) await api.updateProject(project.id, patch)
@@ -199,14 +185,6 @@ export function ProjectModal({ companyId, project, onClose, onSaved }) {
         <div className="field">
           <label htmlFor="ploc">الموقع (اختياري)</label>
           <input id="ploc" className="input" value={form.location} onChange={set('location')} />
-        </div>
-        <div className="field">
-          <label htmlFor="pstatus">الحالة</label>
-          <select id="pstatus" className="input" value={form.status} onChange={set('status')}>
-            <option value="active">جارٍ</option>
-            <option value="onhold">متوقف</option>
-            <option value="done">منتهٍ</option>
-          </select>
         </div>
         <div className="field">
           <label htmlFor="pnotes">ملاحظات (اختياري)</label>

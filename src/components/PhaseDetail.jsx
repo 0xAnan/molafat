@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import * as api from '../lib/api'
 import { ConfirmDialog, Loading, useToast, errText } from './ui'
 import { navigate } from './Dashboard'
-import { POINTS, STATUS_LABEL, formatMoney, formatSize, formatDate, fileKind } from '../lib/points'
+import { POINTS, formatMoney, formatSize, formatDate, fileKind } from '../lib/points'
 
 export default function PhaseDetail({ phaseId, userId }) {
   const toast = useToast()
@@ -20,13 +20,14 @@ export default function PhaseDetail({ phaseId, userId }) {
         .eq('id', phaseId)
         .single()
       if (error) throw error
-      setPhase(ph)
 
       const [entryRows, attRows] = await Promise.all([api.listEntries(phaseId), api.listAttachments(phaseId)])
-      setEntries(Object.fromEntries(entryRows.map((e) => [e.point_key, e])))
       const byPoint = {}
       for (const a of attRows) (byPoint[a.point_key] = byPoint[a.point_key] || []).push(a)
+      // تُضبط الحالات معاً حتى لا تُركّب البطاقات قبل وصول الملاحظات والمبالغ
+      setEntries(Object.fromEntries(entryRows.map((e) => [e.point_key, e])))
       setFiles(byPoint)
+      setPhase(ph)
     } catch (err) {
       toast(errText(err), 'error')
     }
@@ -66,7 +67,7 @@ export default function PhaseDetail({ phaseId, userId }) {
   const project = phase.projects
 
   const doneCount = POINTS.filter(
-    (p) => (files[p.key]?.length || 0) > 0 || entries[p.key]?.status === 'done' || entries[p.key]?.amount != null
+    (p) => (files[p.key]?.length || 0) > 0 || entries[p.key]?.amount != null
   ).length
 
   return (
@@ -134,13 +135,13 @@ function PointCard({
   const [uploading, setUploading] = useState(0)
   const [amount, setAmount] = useState(entry?.amount ?? '')
   const [notes, setNotes] = useState(entry?.notes ?? '')
-  const [showNotes, setShowNotes] = useState(!!entry?.notes)
+  const [notesOpen, setNotesOpen] = useState(false)
 
   useEffect(() => { setAmount(entry?.amount ?? '') }, [entry?.amount])
-  useEffect(() => { if (entry?.notes) setNotes(entry.notes) }, [entry?.notes])
+  useEffect(() => { setNotes(entry?.notes ?? '') }, [entry?.notes])
 
-  const status = entry?.status || 'pending'
-  const effectiveStatus = attachments.length > 0 && status === 'pending' ? 'progress' : status
+  // الملاحظة تظهر دائماً إذا كانت محفوظة، أو عند فتحها يدوياً
+  const showNotes = notesOpen || !!entry?.notes
 
   async function handleFiles(list) {
     const arr = Array.from(list || [])
@@ -187,18 +188,7 @@ function PointCard({
       <div className="head">
         <span className="idx">{point.order}</span>
         <h4>{point.label}</h4>
-        {!isNet && (
-          <button
-            className={`tag ${effectiveStatus}`}
-            title="تغيير الحالة"
-            onClick={() => {
-              const next = { pending: 'progress', progress: 'done', done: 'pending' }[status]
-              onPatch(point.key, { status: next })
-            }}
-          >
-            {STATUS_LABEL[effectiveStatus]}
-          </button>
-        )}
+        {attachments.length > 0 && <span className="tag">{attachments.length} ملف</span>}
       </div>
 
       <div className="body">
@@ -236,29 +226,35 @@ function PointCard({
               const k = fileKind(att.file_name, att.mime_type || '')
               return (
                 <div key={att.id} className="file-row">
-                  <span className={`ext ${k.cls}`}>{k.tag}</span>
-                  <span className="fname" title={att.file_name}>{att.file_name}</span>
-                  <span className="fsize">{formatSize(att.size_bytes)}</span>
-                  <button className="icon-btn" title="فتح" aria-label="فتح الملف" onClick={() => open(att, false)}>⤢</button>
-                  <button className="icon-btn" title="تنزيل" aria-label="تنزيل الملف" onClick={() => open(att, true)}>⇩</button>
-                  <button
-                    className="icon-btn danger"
-                    title="حذف"
-                    aria-label="حذف الملف"
-                    onClick={() =>
-                      onAskDelete({
-                        title: 'حذف الملف',
-                        message: `سيُحذف «${att.file_name}» نهائياً.`,
-                        run: async () => {
-                          await api.deleteAttachment(att)
-                          toast('تم حذف الملف')
-                          await onFilesChanged()
-                        },
-                      })
-                    }
-                  >
-                    ✕
-                  </button>
+                  <div className="file-main">
+                    <span className={`ext ${k.cls}`}>{k.tag}</span>
+                    <span className="fname" title={att.file_name}>{att.file_name}</span>
+                    <span className="fsize">{formatSize(att.size_bytes)}</span>
+                  </div>
+                  <div className="file-actions">
+                    <button className="fa" onClick={() => open(att, false)}>
+                      <span aria-hidden="true">⤢</span> فتح
+                    </button>
+                    <button className="fa" onClick={() => open(att, true)}>
+                      <span aria-hidden="true">⇩</span> تنزيل
+                    </button>
+                    <button
+                      className="fa del"
+                      onClick={() =>
+                        onAskDelete({
+                          title: 'حذف الملف',
+                          message: `سيُحذف «${att.file_name}» نهائياً.`,
+                          run: async () => {
+                            await api.deleteAttachment(att)
+                            toast('تم حذف الملف')
+                            await onFilesChanged()
+                          },
+                        })
+                      }
+                    >
+                      <span aria-hidden="true">✕</span> حذف
+                    </button>
+                  </div>
                 </div>
               )
             })}
@@ -287,15 +283,19 @@ function PointCard({
         />
 
         {showNotes ? (
-          <textarea
-            className="input"
-            placeholder="ملاحظات على هذه النقطة…"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            onBlur={() => notes !== (entry?.notes || '') && onPatch(point.key, { notes: notes || null })}
-          />
+          <div className="notes-box">
+            <label className="tiny muted" htmlFor={`n-${point.key}`}>ملاحظات</label>
+            <textarea
+              id={`n-${point.key}`}
+              className="input"
+              placeholder="اكتب ملاحظتك هنا…"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              onBlur={() => notes !== (entry?.notes || '') && onPatch(point.key, { notes: notes || null })}
+            />
+          </div>
         ) : (
-          <button className="btn ghost sm" style={{ alignSelf: 'flex-start' }} onClick={() => setShowNotes(true)}>
+          <button className="btn ghost sm" style={{ alignSelf: 'flex-start' }} onClick={() => setNotesOpen(true)}>
             + إضافة ملاحظة
           </button>
         )}
